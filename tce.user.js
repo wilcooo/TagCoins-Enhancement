@@ -85,6 +85,7 @@ const MOAR_COINS = 3;                                                           
 // (not yet recommended because it doesn't work well yet)                             //  //
 const NOTIFY_LOTTERY = false;                                                         //  //
                                                                                       //  //
+// Don't forget to save by pressing Ctrl S  (or click the save icon)                  //  // 
 // Got any other recomendations? Let me know!                                         //  //
                                                                                       //  //
 ////////////////////////////////////////////////////////////////////////////////////////  //
