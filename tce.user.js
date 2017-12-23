@@ -79,7 +79,7 @@ const SHOW_CAPITAL = true;                                                      
                                                                                       //  //
 const SPY_PURCHASES = true;                                                           //  //
                                                                                       //  //
-const MOAR_COINS = 100;                                                               //  //
+const MOAR_COINS = 3;                                                                 //  //
                                                                                       //  //
 // Show a notification whenever the lottery info gets updated.                        //  //
 // (not yet recommended because it doesn't work well yet)                             //  //
