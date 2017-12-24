@@ -1,11 +1,12 @@
 // ==UserScript==
 // @name         TagCoins Enhancement
-// @version      0.1
+// @version      0.1.1
 // @description  Enhance your TagCoins Experience!
 // @author       Ko
 // @icon         https://raw.githubusercontent.com/wilcooo/TagCoins-Enhancement/master/three_coins.png
 // @download     https://raw.githubusercontent.com/wilcooo/TagCoins-Enhancement/master/tce.user.js
 // @match        http://tagpro.lol/*
+// @match        http://tagcoins.lol/*
 // @supportURL   https://www.reddit.com/message/compose/?to=Wilcooo
 // @website      https://redd.it/no-post-yet
 // @connect      script.google.com
