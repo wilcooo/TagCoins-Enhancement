@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         TagCoins Enhancement
-// @version      0.1.1
+// @version      0.2
 // @description  Enhance your TagCoins Experience!
 // @author       Ko
 // @icon         https://raw.githubusercontent.com/wilcooo/TagCoins-Enhancement/master/three_coins.png
@@ -78,15 +78,17 @@ const SHOW_ID = true;                                                           
 // This can make the loading of the page slow, and uses some more data.               //  //
 const SHOW_CAPITAL = true;                                                            //  //
                                                                                       //  //
+// See whenever someone buys a ticket. Normally this is hidden.                       //  //
 const SPY_PURCHASES = true;                                                           //  //
                                                                                       //  //
+// The number of coins gets roughly multiplied by this number.                        //  //
 const MOAR_COINS = 3;                                                                 //  //
                                                                                       //  //
 // Show a notification whenever the lottery info gets updated.                        //  //
 // (not yet recommended because it doesn't work well yet)                             //  //
 const NOTIFY_LOTTERY = false;                                                         //  //
                                                                                       //  //
-// Don't forget to save by pressing Ctrl S  (or click the save icon)                  //  // 
+// Don't forget to save by pressing Ctrl S  (or click the save icon)                  //  //
 // Got any other recomendations? Let me know!                                         //  //
                                                                                       //  //
 ////////////////////////////////////////////////////////////////////////////////////////  //
@@ -236,7 +238,16 @@ es.addEventListener("transaction", function(event) {
 
         tmpl += '<div style="float:right">';
 
-        if (SHOW_TIMESTAMP) tmpl += new Date(t.occurred * 1000).toTimeString().substr(0,8);
+        //if (SHOW_TIMESTAMP) tmpl += new Date(t.occurred * 1000).toTimeString().substr(0,8);
+
+        if (SHOW_TIMESTAMP) {
+
+            var timestamp = new Date(t.occurred * 1000).toTimeString().substr(0,8);
+
+            tmpl += '<i class="timestamp" time="' + t.occurred*1000 + '" title="' + timestamp + '" style="color:brown"></i>';
+
+            updateTimestamps();
+        }
 
         if (SHOW_ID) tmpl += ' <sup>'+ t.id + '</sup>';
 
@@ -261,7 +272,7 @@ es.addEventListener("transaction", function(event) {
         // Show a notification
         if (NOTIFY_TRANSACTION) GM_notification( t.reason, notification, null, window.focus );
 
-        updateCapital();
+        updateCapitals();
 
         // The transaction is also send to a google sheet at tiny.cc/tagcoins
         $.post( DataDropURL, t );
@@ -295,7 +306,7 @@ if (LINK_PROFILE && window.location.pathname.includes('tagpro')) {
 
 var cached_capital = {};
 
-function updateCapital() {
+function updateCapitals() {
 
     if (SHOW_CAPITAL) {
 
@@ -332,4 +343,43 @@ function updateCapital() {
 
 }
 
-updateCapital();
+updateCapitals();
+
+
+
+
+
+const m = 60e3,
+      h = 36e5,
+      d = 864e5,
+      w = 6048e5,
+      n = 2629743830,
+      y = 31556926e3,
+      c = 31556926e5,
+      o = 31556926e6,
+      g = 713186527e10;
+
+
+function updateTimestamps() {
+
+    document.querySelectorAll('.timestamp').forEach( function(t) {
+
+        var passed = Date.now() - t.getAttribute('time');
+
+        if      (passed < m) t.innerText =                          "very recently";
+        else if (passed < h) t.innerText = Math.floor( passed/m ) + " minutes ago";
+        else if (passed < d) t.innerText = Math.floor( passed/h ) + " hours ago";
+        else if (passed < w) t.innerText = Math.floor( passed/d ) + " days ago";
+        else if (passed < n) t.innerText = Math.floor( passed/w ) + " weeks ago";
+        else if (passed < y) t.innerText = Math.floor( passed/n ) + " months ago";
+        else if (passed < c) t.innerText = Math.floor( passed/y ) + " years ago";
+        else if (passed < o) t.innerText = Math.floor( passed/c ) + " centuries ago";
+        else if (passed < g) t.innerText = Math.floor( passed/o ) + " millennia ago";
+        else                 t.innerText = Math.floor( passed/g ) + " galactic years ago";
+
+        // #futureproofing xD. Long live the TagCoin
+
+    });
+}
+
+if (SHOW_TIMESTAMP) setInterval(updateTimestamps, 20e3);
