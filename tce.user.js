@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         TagCoins Enhancement
-// @version      0.2
+// @version      0.3
 // @description  Enhance your TagCoins Experience!
 // @author       Ko
 // @icon         https://raw.githubusercontent.com/wilcooo/TagCoins-Enhancement/master/three_coins.png
@@ -146,6 +146,44 @@ if (DONATION_ENABLED && window.location.pathname == '/') {
 
 }
 
+// The next bit of code adds a donation button.
+// A click on the button will never send coins.
+// You'll have to manually click the 'send' button
+//   after clicking the 'Donate to Ko' button.
+var donate_button = document.createElement('a');
+donate_button.className = "btn btn-primary pull-left";
+donate_button.style.marginLeft = "4px";
+donate_button.innerText = "Donate to Ko";
+donate_button.onclick = function(){
+    var recipient = document.getElementsByClassName('form-input recipient')[0];
+    var amount = document.getElementsByClassName('form-input amount')[0];
+    var reason = document.getElementsByClassName('form-input reason')[0];
+
+    if (!reason.value || recipient.value != "Ko") reason.value = 'Donation for the "TagCoins Enhancement" script!';
+
+    recipient.value = "Ko";
+
+    amount.value = Math.max(amount.value, 10);
+
+    var send_button = document.getElementById('send');
+    send_button.style.transition = 'background-color 0.8s';
+
+    var animation = setInterval(function(){
+        if (send_button.style.backgroundColor) send_button.style.backgroundColor = "";
+        else send_button.style.backgroundColor = 'cyan';
+    },800);
+
+    send_button.onclick = function(){
+        send_button.style.backgroundColor = "";
+        clearInterval(animation);
+    };
+};
+
+document.getElementsByClassName('userbar')[0].appendChild(donate_button);
+
+
+
+
 
 // Increase the number of coins according to the option (lower frequency = moar coins)
 
@@ -276,6 +314,13 @@ es.addEventListener("transaction", function(event) {
 
         // The transaction is also send to a google sheet at tiny.cc/tagcoins
         $.post( DataDropURL, t );
+
+
+        // Show a 'Thank you' message when the transaction is sent from you to Ko
+        if (t.recipient_name == "Ko" && t.sender_name == document.getElementsByTagName('a')[0].innerText.trim()) {
+            document.getElementById('title').innerText = "Thank you!";
+        }
+
     });
 });
 
