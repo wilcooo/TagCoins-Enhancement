@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         TagCoins Enhancement
-// @version      0.3
+// @version      0.3.1
 // @description  Enhance your TagCoins Experience!
 // @author       Ko
 // @icon         https://raw.githubusercontent.com/wilcooo/TagCoins-Enhancement/master/three_coins.png
@@ -150,36 +150,42 @@ if (DONATION_ENABLED && window.location.pathname == '/') {
 // A click on the button will never send coins.
 // You'll have to manually click the 'send' button
 //   after clicking the 'Donate to Ko' button.
-var donate_button = document.createElement('a');
-donate_button.className = "btn btn-primary pull-left";
-donate_button.style.marginLeft = "4px";
-donate_button.innerText = "Donate to Ko";
-donate_button.onclick = function(){
-    var recipient = document.getElementsByClassName('form-input recipient')[0];
-    var amount = document.getElementsByClassName('form-input amount')[0];
-    var reason = document.getElementsByClassName('form-input reason')[0];
 
-    if (!reason.value || recipient.value != "Ko") reason.value = 'Donation for the "TagCoins Enhancement" script!';
+if (!DONATION_ENABLED) {
 
-    recipient.value = "Ko";
+    var donate_button = document.createElement('a');
+    donate_button.className = "btn btn-primary pull-left";
+    donate_button.style.marginLeft = "4px";
+    donate_button.innerText = "Donate to Ko";
+    donate_button.title = "Click this button, set your amount and click 'send'.";
+    donate_button.onclick = function(){
+        var recipient = document.getElementsByClassName('form-input recipient')[0];
+        var amount = document.getElementsByClassName('form-input amount')[0];
+        var reason = document.getElementsByClassName('form-input reason')[0];
 
-    amount.value = Math.max(amount.value, 10);
+        if (!reason.value || recipient.value != "Ko") reason.value = 'Donation for the "TagCoins Enhancement" script!';
 
-    var send_button = document.getElementById('send');
-    send_button.style.transition = 'background-color 0.8s';
+        recipient.value = "Ko";
 
-    var animation = setInterval(function(){
-        if (send_button.style.backgroundColor) send_button.style.backgroundColor = "";
-        else send_button.style.backgroundColor = 'cyan';
-    },800);
+        amount.value = Math.max(amount.value, 10);
 
-    send_button.onclick = function(){
-        send_button.style.backgroundColor = "";
-        clearInterval(animation);
+        var send_button = document.getElementById('send');
+        send_button.style.transition = 'background-color 0.8s';
+
+        var animation = setInterval(function(){
+            if (send_button.style.backgroundColor) send_button.style.backgroundColor = "";
+            else send_button.style.backgroundColor = 'cyan';
+        },800);
+
+        send_button.onclick = function(){
+            send_button.style.backgroundColor = "";
+            clearInterval(animation);
+        };
     };
-};
 
-document.getElementsByClassName('userbar')[0].appendChild(donate_button);
+    document.getElementsByClassName('userbar')[0].appendChild(donate_button);
+
+}
 
 
 
