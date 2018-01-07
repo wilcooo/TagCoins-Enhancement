@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         TagCoins Enhancement
-// @version      0.3.1
+// @version      0.4
 // @description  Enhance your TagCoins Experience!
 // @author       Ko
 // @icon         https://raw.githubusercontent.com/wilcooo/TagCoins-Enhancement/master/three_coins.png
@@ -83,6 +83,10 @@ const SPY_PURCHASES = true;                                                     
                                                                                       //  //
 // The number of coins gets roughly multiplied by this number.                        //  //
 const MOAR_COINS = 3;                                                                 //  //
+                                                                                      //  //
+// Don't allow the same transaction to be send twice (without re-entering it)         //  //
+// Also known as the 'double-spend bug'                                               //  //
+const FIX_DOUBLE_SPEND = true;                                                        //  //
                                                                                       //  //
 // Show a notification whenever the lottery info gets updated.                        //  //
 // (not yet recommended because it doesn't work well yet)                             //  //
@@ -339,6 +343,82 @@ es.addEventListener("lottery", function(event) {
     if (NOTIFY_LOTTERY) GM_notification( 'Some information about the lottery got updated. This script doesn\'t know why (yet). (see console)', 'Lottery update!?', null, window.focus );
     console.log('Lottery update!?',data);
 });
+
+
+
+if (FIX_DOUBLE_SPEND) {
+    var send_button = $('#send');
+
+    send_button.off('click'); // Remove the normal handler
+
+    send_button.click( function onSend() {
+        send_button[0].disabled = true;
+        send_button[0].style.cursor = 'default';
+        loader.show();
+
+        var recipient = $("input[name=recipient]").val();
+        var amount = parseInt($("input[name=amount]").val(), 10);
+        var csrfToken = $("input[name=csrfToken]").val();
+        var reason = $("textarea[name=reason]").val() || null;
+
+        $.post("/send/tagcoins", {
+            recipient: recipient,
+            amount: amount,
+            reason: reason,
+            _csrf: csrfToken
+        }, function(res) {
+            if (!res.valid) {
+                showError(res.errorMessage);
+                send_button[0].disabled = false;
+                send_button[0].style.cursor = 'pointer';
+                loader.hide();
+            } else {
+                showSuccess();
+                send_button[0].disabled = false;
+                send_button[0].style.cursor = 'pointer';
+                loader.hide();
+            }
+        });
+    });
+
+
+
+    // Add a loading diamond
+
+    // Find the correct styleSheet
+    for (var styleSheet of document.styleSheets) if (styleSheet.href.includes('/style.css')) break;
+
+    // Add a rule to the sheet for the timestamp
+    styleSheet.insertRule(`.loader {
+                               background-image: url('/static/images/diamond_green.png');
+                               width: 40;
+                               height: 40;
+                               animation: spin 1s linear infinite;
+                           }`);
+    styleSheet.insertRule(`
+                           @keyframes spin {
+                               0% { transform: rotate(0deg); }
+                               100% { transform: rotate(360deg); }
+                           }`);
+
+    var loader = $("<div></div>").addClass("loader").width(32).height(27).css({left:400,top:16,position:'absolute'}).appendTo(send_button.parent()).hide();
+    loader.parent().css({position:'relative'});
+
+}
+
+
+function showSuccess() {
+    $("input[name=recipient]").val("");
+    $("input[name=amount]").val("");
+    $("textarea[name=reason]").val("");
+
+    $("#title").text("Success!");
+
+    setTimeout(function() {
+        $("#title").text("Tag Coins");
+    }, 5000);
+}
+
 
 
 
