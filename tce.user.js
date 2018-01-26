@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         TagCoins Enhancement
-// @version      0.4
+// @version      4.2
 // @description  Enhance your TagCoins Experience!
 // @author       Ko
 // @icon         https://raw.githubusercontent.com/wilcooo/TagCoins-Enhancement/master/three_coins.png
@@ -78,6 +78,9 @@ const SHOW_ID = true;                                                           
 // This can make the loading of the page slow, and uses some more data.               //  //
 const SHOW_CAPITAL = true;                                                            //  //
                                                                                       //  //
+// Update your own capital (at the top of the page) whenever you send or receive.     //  //
+const UPDATE_OWN_CAPITAL = true;                                                      //  //
+                                                                                      //  //
 // See whenever someone buys a ticket. Normally this is hidden.                       //  //
 const SPY_PURCHASES = true;                                                           //  //
                                                                                       //  //
@@ -91,6 +94,14 @@ const FIX_DOUBLE_SPEND = true;                                                  
 // Show a notification whenever the lottery info gets updated.                        //  //
 // (not yet recommended because it doesn't work well yet)                             //  //
 const NOTIFY_LOTTERY = false;                                                         //  //
+                                                                                      //  //
+// Hide the lottery statement while it's the same as it has been for a month now.     //  //
+// (as of january 2018)                                                               //  //
+const HIDE_LOTTERY_STATEMENT = false;                                                 //  //
+                                                                                      //  //
+// Replace 'for now' by 'forever' in the text on the top left, because it seems       //  //
+// to be more accurate                                                                //  //
+const LOTTERY_IS_DEAD = true;                                                         //  //
                                                                                       //  //
 // Don't forget to save by pressing Ctrl S  (or click the save icon)                  //  //
 // Got any other recomendations? Let me know!                                         //  //
@@ -155,7 +166,7 @@ if (DONATION_ENABLED && window.location.pathname == '/') {
 // You'll have to manually click the 'send' button
 //   after clicking the 'Donate to Ko' button.
 
-if (!DONATION_ENABLED) {
+if (!DONATION_ENABLED && window.location.pathname == '/') {
 
     var donate_button = document.createElement('a');
     donate_button.className = "btn btn-primary pull-left";
@@ -193,6 +204,24 @@ if (!DONATION_ENABLED) {
 
 
 
+// Replace the lottery text because it takes forever.
+
+var lottery_container = document.getElementsByClassName('lottery-container')[0];
+
+
+// Fully hide the lottery statement, if it's the exact text as the following:
+const lottery_statement = "Disabled lotto for now. \nDamn banks - you got me lol\nAlso the site kept crashing so i need to fix that. I'll check the records for corrupt lotteries and reinstate your tickets";
+
+if ( HIDE_LOTTERY_STATEMENT && lottery_container && lottery_container.innerText == lottery_statement ) {
+    lottery_container.hidden = true;
+}
+
+if( LOTTERY_IS_DEAD ) {
+    if (lottery_container) lottery_container.innerHTML = lottery_container.innerHTML.replace('for now', '<b><i>forever</i></b>');
+}
+
+
+
 
 
 // Increase the number of coins according to the option (lower frequency = moar coins)
@@ -209,6 +238,8 @@ emitter = {update: function(...args){real_emitter.update(...args);},
 
 // Now we can write our own event handler to add transactions to the table, but on our way :)
 
+var your_profile_id = document.querySelector('[name=user_profile_id]').value;
+var your_capital = parseInt(document.querySelector('[name=user_profile_id]').parentNode.childNodes[6].textContent);
 
 var es = new EventSource('/stream/updates');
 es.addEventListener("transaction", function(event) {
@@ -234,8 +265,6 @@ es.addEventListener("transaction", function(event) {
             tmpl += "<span class=\"flair "+ t.sender_flair;
             tmpl += "\" style=\"background-position: "+ t.sender_flair_x +"px "+ t.sender_flair_y +"px\"></span> ";
             tmpl += t.sender_name + "</a> ";
-
-            cached_capital["/tagpro/"+t.sender_profile_id] = null;
 
             notification += t.sender_name + " ";
         } else {
@@ -268,8 +297,6 @@ es.addEventListener("transaction", function(event) {
             tmpl += "\" style=\"background-position: "+ t.recipient_flair_x +"px "+ t.recipient_flair_y +"px\"></span> ";
             tmpl += t.recipient_name;
             tmpl += "</a>";
-
-            cached_capital["/tagpro/"+t.recipient_profile_id] = null;
 
             notification += "to " + t.recipient_name;
         }
@@ -320,6 +347,9 @@ es.addEventListener("transaction", function(event) {
         // Show a notification
         if (NOTIFY_TRANSACTION) GM_notification( t.reason, notification, null, window.focus );
 
+        // Put the capital behind the transaction.
+        offset_capital["/tagpro/"+t.recipient_profile_id] += t.amount;
+        offset_capital["/tagpro/"+t.sender_profile_id]    -= t.amount;
         updateCapitals();
 
         // The transaction is also send to a google sheet at tiny.cc/tagcoins
@@ -327,8 +357,25 @@ es.addEventListener("transaction", function(event) {
 
 
         // Show a 'Thank you' message when the transaction is sent from you to Ko
-        if (t.recipient_name == "Ko" && t.sender_name == document.getElementsByTagName('a')[0].innerText.trim()) {
-            document.getElementById('title').innerText = "Thank you!";
+        if (t.recipient_profile_id == "568c0e575f205782559d87c9" && t.sender_profile_id == your_profile_id) {
+            var title = document.getElementById('title');
+            title.innerText = "Thank you :)";
+            title.style.color = 'limegreen';
+
+            setTimeout(function(){
+                title.innerText = "TagCoins";
+                title.style.color = 'black';
+            },5000);
+        }
+
+        // Update your own balance at the top of the page when the transaction is from or to you
+        if (UPDATE_OWN_CAPITAL) {
+            if (t.recipient_profile_id == your_profile_id){
+                your_capital += t.amount;
+            } else if (t.sender_profile_id == your_profile_id){
+                your_capital -= t.amount;
+            }
+            document.querySelector('[name=user_profile_id]').parentNode.childNodes[6].textContent = your_capital+" TGC ";
         }
 
     });
@@ -340,7 +387,7 @@ es.addEventListener("lottery", function(event) {
     // data tags: id, amount, ticket_price, ticket_sold, ends_at, limit_per_user
     // also: event.ends_at
 
-    if (NOTIFY_LOTTERY) GM_notification( 'Some information about the lottery got updated. This script doesn\'t know why (yet). (see console)', 'Lottery update!?', null, window.focus );
+    if (NOTIFY_LOTTERY) GM_notification( 'Some information about the lottery got updated. This script doesn\'t know what it means (yet). (see console)', 'Lottery update!?', null, window.focus );
     console.log('Lottery update!?',data);
 });
 
@@ -436,6 +483,7 @@ if (LINK_PROFILE && window.location.pathname.includes('tagpro')) {
 // Fetch capital of both parties (if enabled)
 
 var cached_capital = {};
+var offset_capital = {}; // When new transactions come in, the relative balance of the accounts involved is stored here
 
 function updateCapitals() {
 
@@ -446,7 +494,7 @@ function updateCapitals() {
             a.classList.add('capital');
 
             if (cached_capital[a.href]) {
-                cached_capital[a.href].then( capital => a.innerHTML += ' <i style="color:goldenrod">'+capital+'</i>' );
+                cached_capital[a.href].then( capital => a.innerHTML += ' <i style="color:goldenrod">'+(capital+(offset_capital[a.href] || ''))+'</i>' );
 
             } else {
 
@@ -458,11 +506,14 @@ function updateCapitals() {
                         onload: function(response) {
                             var profile_document = new DOMParser().parseFromString(response.responseText, "text/html");
 
-                            var capital = parseInt(profile_document.querySelector('div.text-center').innerText);
+                            let text_center;
 
-                            a.innerHTML += '<i style="color:goldenrod">'+capital+'</i>';
+                            if ((text_center = profile_document.querySelector('div.text-center'))) {
+                                var capital = parseInt(profile_document.querySelector('div.text-center').innerText);
+                                a.innerHTML += '<i style="color:goldenrod">'+(capital+(offset_capital[a.href] || ''))+'</i>';
 
-                            resolve(capital);
+                                resolve(capital);
+                            }
                         },
                     });
                 });
